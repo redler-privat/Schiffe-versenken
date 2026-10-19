@@ -1,0 +1,623 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Schiffe versenken</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Neucha&family=Russo+One&display=swap">
+<style>
+/* Layout: kariertes Schulheft — zwei 10×10-Felder nebeneinander (Querformat) bzw. untereinander (Hochformat), blauer Kuli für Schiffe, roter Stift für Treffer */
+:root {
+  --bg: #e9eef1;
+  --sheet: #fbfcfd;
+  --grid: #bfd0dc;
+  --grid-strong: #8fa9bc;
+  --fg: #17222b;
+  --muted: #5a6a77;
+  --ink: #2346a8;
+  --ink-soft: rgba(35, 70, 168, .14);
+  --hit: #c8281e;
+  --hit-soft: rgba(200, 40, 30, .14);
+  --ok: #1d7a4c;
+  --btn-fg: #ffffff;
+  --shadow: 0 1px 0 rgba(23,34,43,.06), 0 8px 24px -12px rgba(23,34,43,.25);
+  --f-display: "Russo One", "Arial Black", system-ui, sans-serif;
+  --f-body: "Golos Text", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --f-hand: "Neucha", "Marker Felt", "Comic Sans MS", cursive;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151c; --sheet: #151f29; --grid: #273847; --grid-strong: #3d5468;
+    --fg: #e5ecf1; --muted: #8b9daa; --ink: #86a8ff; --ink-soft: rgba(134,168,255,.16);
+    --hit: #ff6a5c; --hit-soft: rgba(255,106,92,.16); --ok: #4fc58a; --btn-fg: #0e151c;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151c; --sheet: #151f29; --grid: #273847; --grid-strong: #3d5468;
+  --fg: #e5ecf1; --muted: #8b9daa; --ink: #86a8ff; --ink-soft: rgba(134,168,255,.16);
+  --hit: #ff6a5c; --hit-soft: rgba(255,106,92,.16); --ok: #4fc58a; --btn-fg: #0e151c;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0;
+  background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 12px;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+#app { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 4vw, 38px); margin: 0; color: var(--ink); letter-spacing: .01em; }
+.brand span { color: var(--muted); font-size: 14px; }
+button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; touch-action: manipulation; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.btn { background: var(--ink); color: var(--btn-fg); padding: 14px 22px; font-weight: 600; font-size: 17px; min-height: 52px; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 2px var(--grid-strong); }
+.btn.danger { background: var(--hit); }
+.btn.small { padding: 8px 14px; font-size: 14px; min-height: 40px; }
+.btn.go { background: var(--ok); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.panel { background: var(--sheet); border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
+.lead { font-size: 18px; line-height: 1.5; max-width: 62ch; margin: 0; }
+.muted { color: var(--muted); }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: clamp(22px, 3vw, 30px); margin: 0; text-wrap: balance; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+
+/* Start */
+.start { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .start { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.field input { font: inherit; font-size: 18px; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--grid); background: var(--bg); color: var(--fg); -webkit-user-select: text; user-select: text; }
+.toggle { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; cursor: pointer; }
+.toggle input { width: 24px; height: 24px; accent-color: var(--ink); flex: none; margin-top: 2px; }
+.rules { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.rules li { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: start; line-height: 1.45; }
+.rules b { font-family: var(--f-hand); font-size: 20px; font-weight: 400; color: var(--ink); }
+.fleet-demo { display: flex; flex-direction: column; gap: 6px; }
+.fleet-demo .ln { display: flex; gap: 10px; align-items: center; }
+.pips { display: flex; gap: 0; }
+.pip { width: 18px; height: 18px; border: 2px solid var(--ink); background: var(--ink-soft); margin-left: -2px; }
+.pip:first-child { margin-left: 0; }
+.notice { padding: 10px 14px; border-radius: 10px; background: var(--ink-soft); color: var(--fg); }
+
+/* Boards */
+.boards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+@media (orientation: portrait), (max-width: 760px) { .boards { grid-template-columns: minmax(0, 1fr); justify-items: center; } }
+.bwrap { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: min(100%, 72vh, 560px); margin: 0 auto; }
+@media (orientation: portrait) { .bwrap { max-width: min(100%, 40vh, 560px); } .boards.single .bwrap { max-width: min(100%, 64vh, 600px); } }
+.bhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.bhead .t { font-weight: 700; font-size: 16px; }
+.bhead .s { font-size: 13px; color: var(--muted); }
+.board {
+  display: grid; grid-template-columns: repeat(11, minmax(0, 1fr));
+  background: var(--sheet); border-radius: 12px; box-shadow: var(--shadow); padding: 8px 10px 10px 4px;
+}
+.board.target { box-shadow: var(--shadow), inset 0 0 0 3px var(--ink); }
+.board.locked .c { cursor: default; }
+.hd { display: flex; align-items: center; justify-content: center; font-family: var(--f-hand); font-size: clamp(13px, 2.2vw, 20px); color: var(--muted); aspect-ratio: 1; }
+.c {
+  position: relative; aspect-ratio: 1; border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid);
+  cursor: pointer; padding: 0; background: transparent; border-radius: 0; min-width: 0;
+}
+.c.r0 { border-top: 2px solid var(--grid-strong); }
+.c.c0 { border-left: 2px solid var(--grid-strong); }
+.c.r9 { border-bottom: 2px solid var(--grid-strong); }
+.c.c9 { border-right: 2px solid var(--grid-strong); }
+.c.ship { background: var(--ink-soft); box-shadow: inset 0 0 0 2px var(--ink); }
+.c.sunk { background: var(--hit-soft); box-shadow: inset 0 0 0 2px var(--hit); }
+.c.miss::after, .c.auto::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; border-radius: 50%;
+  transform: translate(-50%, -50%); background: var(--ink);
+}
+.c.auto::after { background: var(--muted); opacity: .55; width: 16%; height: 16%; }
+.c.hit::before, .c.hit::after {
+  content: ""; position: absolute; left: 14%; right: 14%; top: 50%; height: 3px; border-radius: 2px;
+  background: var(--hit); transform-origin: center;
+}
+.c.hit::before { transform: translateY(-50%) rotate(45deg); }
+.c.hit::after { transform: translateY(-50%) rotate(-45deg); }
+.c.last { outline: 3px solid var(--hit); outline-offset: -3px; z-index: 1; animation: ping 1.2s ease-out 2; }
+.c.flash { background: var(--hit-soft); }
+.c.fresh { animation: pop .35s ease-out; }
+@keyframes ping { 0% { outline-color: var(--hit); } 50% { outline-color: transparent; } 100% { outline-color: var(--hit); } }
+@keyframes pop { 0% { transform: scale(.6); } 100% { transform: scale(1); } }
+@media (hover: hover) { .board.target:not(.locked) .c.empty:hover { background: var(--ink-soft); } }
+
+/* Status bar */
+.status { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.status h2 { color: var(--fg); }
+.msg { font-family: var(--f-hand); font-size: clamp(22px, 3vw, 30px); color: var(--ink); min-height: 1.2em; }
+.msg.hit { color: var(--hit); }
+.fleetline { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--muted); align-items: center; }
+.fleetline .pips .pip { width: 12px; height: 12px; border-width: 1.5px; margin-left: -1.5px; }
+.fleetline .gone .pip { border-color: var(--hit); background: var(--hit-soft); opacity: .6; }
+.fleetline .gone { position: relative; }
+.fleetline .gone::after { content: ""; position: absolute; left: -2px; right: -2px; top: 50%; height: 2px; background: var(--hit); }
+
+/* Placement */
+.place { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr); gap: 20px; align-items: start; }
+@media (orientation: portrait), (max-width: 760px) { .place { grid-template-columns: minmax(0, 1fr); } }
+.pool { display: flex; flex-direction: column; gap: 8px; }
+.pool button { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--bg); color: var(--fg); border-radius: 10px; box-shadow: inset 0 0 0 2px transparent; min-height: 48px; }
+.pool button.sel { box-shadow: inset 0 0 0 2px var(--ink); }
+.pool button:disabled { opacity: .35; cursor: default; }
+.pool .cnt { font-variant-numeric: tabular-nums; font-weight: 700; }
+.seg { display: inline-flex; background: var(--bg); border-radius: 10px; padding: 4px; gap: 4px; }
+.seg button { padding: 10px 14px; background: transparent; color: var(--fg); font-weight: 600; min-height: 44px; }
+.seg button.on { background: var(--ink); color: var(--btn-fg); }
+.hint { font-size: 14px; color: var(--muted); line-height: 1.45; margin: 0; }
+.err { color: var(--hit); font-weight: 600; min-height: 1.4em; font-size: 14px; }
+
+/* Handover */
+.handover { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px; }
+.handover .big { font-family: var(--f-display); font-size: clamp(34px, 6vw, 60px); color: var(--ink); margin: 0; text-wrap: balance; }
+.handover .sub { font-size: 18px; color: var(--muted); max-width: 40ch; line-height: 1.5; margin: 0; }
+.handover .report { font-family: var(--f-hand); font-size: 24px; color: var(--fg); }
+.handover .btn { font-size: 20px; padding: 18px 32px; }
+
+/* Win */
+.win { text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; padding-block: 12px; }
+.win .big { font-family: var(--f-display); font-size: clamp(32px, 6vw, 56px); color: var(--ink); margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 560px; }
+.stat { background: var(--bg); border-radius: 10px; padding: 12px; text-align: left; }
+.stat .n { font-weight: 700; margin-bottom: 4px; }
+.stat dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.stat dt { color: var(--muted); }
+.stat dd { margin: 0; text-align: right; font-weight: 600; }
+.confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* Ein-Bildschirm-Layout fürs iPad */
+html.fit, html.fit body { height: 100%; overflow: hidden; }
+html.fit #app { height: 100%; }
+.arena { flex: 1; min-height: 0; display: flex; gap: 16px; justify-content: center; align-items: center; --bs: 360px; }
+.arena.stack { flex-direction: column; }
+.arena.narrow { flex-direction: column; align-items: stretch; }
+.unit { display: flex; gap: 16px; align-items: flex-start; }
+.arena.narrow .unit { flex-direction: column; align-items: stretch; }
+.bcol { width: var(--bs); display: flex; flex-direction: column; gap: 6px; flex: none; }
+.arena.narrow .bcol { width: 100%; }
+.bcol .board { width: 100%; padding: 6px; }
+.bhead.tight { height: 22px; align-items: center; flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.fleetpanel { width: 172px; flex: none; background: var(--sheet); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
+.arena.narrow .fleetpanel { width: 100%; margin-top: 0; }
+.fleetpanel .ttl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.fleetpanel .sum { font-weight: 700; font-size: 15px; }
+.fleetpanel .sum b { font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.frow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
+.frow .pips .pip { width: 13px; height: 13px; border-width: 1.5px; margin-left: -1.5px; }
+.frow .nm { grid-column: 1; font-size: 12px; color: var(--muted); }
+.frow .left { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.frow .left b { font-size: 22px; display: block; color: var(--fg); }
+.frow .left span { font-size: 11px; color: var(--muted); }
+.frow.done .pips .pip { border-color: var(--hit); background: var(--hit-soft); }
+.frow.done .left b { color: var(--hit); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; flex: none; }
+.status.tight { flex: none; }
+.status.tight h2 { font-size: clamp(20px, 2.6vw, 26px); }
+.status.tight .msg { font-size: clamp(20px, 2.6vw, 26px); }
+.placearena { flex: 1; min-height: 0; display: flex; gap: 20px; justify-content: center; align-items: flex-start; --bs: 360px; }
+.placearena.stack { flex-direction: column; align-items: center; }
+.placearena .ppanel { width: 320px; flex: none; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.placearena.stack .ppanel { width: var(--bs); max-width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+.placearena.stack .ppanel .span2 { grid-column: 1 / -1; }
+.placearena.narrow { flex-direction: column; align-items: stretch; }
+.placearena.narrow .bcol, .placearena.narrow .ppanel { width: 100%; }
+@media (prefers-reduced-motion: reduce) { .c.last, .c.fresh { animation: none; } }
+</style>
+
+<div id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+  var L = ["A","B","C","D","E","F","G","H","I","J"];
+  var FLEET = [4,3,3,2,2,2,1,1,1,1];
+  var KEY = "morskoi-boi-v1";
+  var app = document.getElementById("app");
+  var S;
+  var flashCells = [];
+  var freshCell = -1;
+
+  function newPlayer() { return { ships: [], shipAt: fill(-1), shots: fill(0), fired: 0, hits: 0, last: -1 }; }
+  function fill(v) { var a = []; for (var i = 0; i < 100; i++) a.push(v); return a; }
+  function fresh(names, extra) {
+    return { screen: "start", names: names || ["Team A", "Team B"], extra: extra !== false,
+      players: [newPlayer(), newPlayer()], turn: 0, placing: 0, sel: 4, horiz: true,
+      msg: "", msgHit: false, pass: false, winner: -1, next: null, report: "", ended: false, askReset: false, err: "" };
+  }
+  function coord(i) { return L[i % 10] + (Math.floor(i / 10) + 1); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (m) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]; }); }
+  function name(p) { return esc(S.names[p]); }
+
+  // ---------- Platzierung ----------
+  function cellsFor(r, c, size, horiz) {
+    var out = [];
+    for (var k = 0; k < size; k++) {
+      var rr = horiz ? r : r + k, cc = horiz ? c + k : c;
+      if (rr > 9 || cc > 9) return null;
+      out.push(rr * 10 + cc);
+    }
+    return out;
+  }
+  function neighbors(i) {
+    var r = Math.floor(i / 10), c = i % 10, out = [];
+    for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) {
+      var rr = r + dr, cc = c + dc;
+      if (rr >= 0 && rr < 10 && cc >= 0 && cc < 10) out.push(rr * 10 + cc);
+    }
+    return out;
+  }
+  function canPlace(P, cells) {
+    if (!cells) return false;
+    for (var i = 0; i < cells.length; i++) {
+      var nb = neighbors(cells[i]);
+      for (var j = 0; j < nb.length; j++) if (P.shipAt[nb[j]] !== -1) return false;
+    }
+    return true;
+  }
+  function addShip(P, cells) {
+    P.ships.push({ size: cells.length, cells: cells, hits: 0 });
+    var id = P.ships.length - 1;
+    cells.forEach(function (x) { P.shipAt[x] = id; });
+  }
+  function rebuild(P) {
+    P.shipAt = fill(-1);
+    P.ships.forEach(function (s, id) { s.cells.forEach(function (x) { P.shipAt[x] = id; }); });
+  }
+  function remaining(P) {
+    var left = {1: 0, 2: 0, 3: 0, 4: 0};
+    FLEET.forEach(function (s) { left[s]++; });
+    P.ships.forEach(function (s) { left[s.size]--; });
+    return left;
+  }
+  function randomFleet(P) {
+    for (var attempt = 0; attempt < 200; attempt++) {
+      P.ships = []; P.shipAt = fill(-1);
+      var ok = true;
+      for (var f = 0; f < FLEET.length && ok; f++) {
+        var placed = false;
+        for (var t = 0; t < 300 && !placed; t++) {
+          var h = Math.random() < .5;
+          var cells = cellsFor(Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), FLEET[f], h);
+          if (canPlace(P, cells)) { addShip(P, cells); placed = true; }
+        }
+        if (!placed) ok = false;
+      }
+      if (ok) return;
+    }
+  }
+  function nextSel(P) {
+    var left = remaining(P);
+    if (left[S.sel] > 0) return S.sel;
+    for (var s = 4; s >= 1; s--) if (left[s] > 0) return s;
+    return 0;
+  }
+
+  // ---------- Schießen ----------
+  function fire(idx) {
+    var me = S.players[S.turn], foe = S.players[1 - S.turn];
+    if (S.pass || foe.shots[idx] !== 0) return;
+    me.fired++; foe.last = idx; freshCell = idx;
+    var sid = foe.shipAt[idx];
+    if (sid === -1) {
+      foe.shots[idx] = 1;
+      S.msg = coord(idx) + " – daneben."; S.msgHit = false; S.pass = true;
+      S.report = name(S.turn) + " hat auf " + coord(idx) + " geschossen – daneben.";
+      save(); render(); return;
+    }
+    foe.shots[idx] = 2; me.hits++;
+    var ship = foe.ships[sid]; ship.hits++;
+    if (ship.hits === ship.size) {
+      ship.cells.forEach(function (x) {
+        neighbors(x).forEach(function (n) { if (foe.shots[n] === 0) foe.shots[n] = 3; });
+      });
+      S.msg = coord(idx) + " – versenkt! " + ship.size + "er-Schiff ist unten.";
+      S.report = name(S.turn) + " hat dein " + ship.size + "er-Schiff versenkt (" + coord(idx) + ").";
+    } else {
+      S.msg = coord(idx) + " – Treffer!";
+      S.report = name(S.turn) + " hat dich auf " + coord(idx) + " getroffen.";
+    }
+    S.msgHit = true;
+    if (foe.ships.every(function (s) { return s.hits === s.size; })) {
+      S.winner = S.turn; S.screen = "win"; save(); render(); return;
+    }
+    if (S.extra) S.msg += " Du darfst nochmal schießen.";
+    else S.pass = true;
+    save(); render();
+  }
+
+  // ---------- Darstellung ----------
+  function boardHTML(P, role, opts) {
+    opts = opts || {};
+    var h = '<div class="board ' + (opts.cls || "") + '" data-board="' + role + '" role="grid" aria-label="' + esc(opts.label || "Spielfeld") + '">';
+    h += '<div class="hd"></div>';
+    for (var c = 0; c < 10; c++) h += '<div class="hd">' + L[c] + '</div>';
+    for (var r = 0; r < 10; r++) {
+      h += '<div class="hd">' + (r + 1) + '</div>';
+      for (var c2 = 0; c2 < 10; c2++) {
+        var i = r * 10 + c2, cls = ["c", "r" + r, "c" + c2];
+        var sid = P.shipAt[i], shot = P.shots[i];
+        var sunk = sid !== -1 && P.ships[sid].hits === P.ships[sid].size;
+        if (sid !== -1 && (opts.showShips || sunk)) cls.push(sunk ? "sunk" : "ship");
+        if (shot === 1) cls.push("miss");
+        else if (shot === 2) cls.push("hit");
+        else if (shot === 3) cls.push("auto");
+        else cls.push("empty");
+        if (opts.showLast && P.last === i) cls.push("last");
+        if (opts.fresh && freshCell === i) cls.push("fresh");
+        if (opts.flash && flashCells.indexOf(i) !== -1) cls.push("flash");
+        var lbl = coord(i) + (shot === 1 || shot === 3 ? ", Fehlschuss" : shot === 2 ? ", Treffer" : "");
+        h += '<button class="' + cls.join(" ") + '" data-cell="' + i + '" aria-label="' + lbl + '"></button>';
+      }
+    }
+    return h + '</div>';
+  }
+  function pipsHTML(n) { var s = '<span class="pips">'; for (var i = 0; i < n; i++) s += '<span class="pip"></span>'; return s + '</span>'; }
+  function fleetLine(P) {
+    var ships = P.ships.slice().sort(function (a, b) { return b.size - a.size; });
+    return '<div class="fleetline">' + ships.map(function (s) {
+      return '<span class="' + (s.hits === s.size ? "gone" : "") + '">' + pipsHTML(s.size) + '</span>';
+    }).join("") + '</div>';
+  }
+  function headerHTML() {
+    var right = "";
+    var fs = fsSupported() ? '<button class="btn small ghost" data-a="fs">' + (fsActive() ? "Vollbild beenden" : "⛶ Vollbild") + '</button>' : '';
+    return '<header class="top"><div class="brand"><h1>Schiffe versenken</h1><span>nach russischen Regeln</span></div><div class="row">' + fs + right + '</div></header>';
+  }
+
+  function footHTML() {
+    var l = S.askReset
+      ? '<span class="confirm"><span class="muted">Spiel wirklich abbrechen? Alles geht verloren.</span><button class="btn small danger" data-a="reset-yes">Ja, abbrechen</button><button class="btn small ghost" data-a="reset-no">Weiterspielen</button></span>'
+      : '<button class="btn small ghost" data-a="reset-ask">Spiel abbrechen</button>';
+    return '<footer class="foot">' + l + '</footer>';
+  }
+  var TYPES = [[4, "Schlachtschiff"], [3, "Kreuzer"], [2, "Zerstörer"], [1, "Schnellboot"]];
+  function fleetPanel(P, title) {
+    var alive = P.ships.filter(function (s) { return s.hits < s.size; }).length;
+    var h = '<aside class="fleetpanel"><div class="ttl">' + title + '</div><div class="sum"><b>' + alive + '</b> von 10 übrig</div>';
+    TYPES.forEach(function (t) {
+      var all = P.ships.filter(function (s) { return s.size === t[0]; });
+      var sunk = all.filter(function (s) { return s.hits === s.size; }).length;
+      var left = all.length - sunk;
+      h += '<div class="frow' + (left === 0 ? " done" : "") + '">' + pipsHTML(t[0]) + '<div class="left"><b>' + left + '</b><span>' + (sunk ? sunk + " versenkt" : "von " + all.length) + '</span></div><div class="nm">' + t[1] + '</div></div>';
+    });
+    return h + '</aside>';
+  }
+
+  function viewStart() {
+    var saved = load();
+    var resume = saved && saved.screen !== "start" && saved.screen !== "win" && !saved.ended;
+    var h = '<div class="start">';
+    h += '<section class="panel" style="display:flex;flex-direction:column;gap:16px">';
+    if (S.ended) h += '<div class="notice">Spiel beendet. Danke fürs Spielen! Ihr könnt jederzeit eine neue Partie starten.</div>';
+    h += '<h2>Neues Spiel für zwei</h2><p class="lead muted">Ein iPad, zwei Teams. Jedes Team stellt verdeckt seine Flotte auf, danach wird das iPad nach jedem Zug weitergereicht.</p>';
+    h += '<div class="field"><label for="n0">Team 1</label><input id="n0" maxlength="20" value="' + esc(S.names[0]) + '"></div>';
+    h += '<div class="field"><label for="n1">Team 2</label><input id="n1" maxlength="20" value="' + esc(S.names[1]) + '"></div>';
+    h += '<div class="row"><button class="btn" data-a="start">Spiel starten</button>' + (resume ? '<button class="btn ghost" data-a="resume">Letztes Spiel fortsetzen</button>' : '') + '</div>';
+    h += '</section>';
+    h += '<section class="panel"><h3>Regeln</h3><ul class="rules">';
+    h += '<li><b>Feld</b><span>10 × 10 Kästchen, Spalten A bis J, Zeilen 1 bis 10.</span></li>';
+    h += '<li><b>Flotte</b><div class="fleet-demo">' +
+      '<div class="ln">' + pipsHTML(4) + '<span>1 × Schlachtschiff</span></div>' +
+      '<div class="ln">' + pipsHTML(3) + '<span>2 × Kreuzer</span></div>' +
+      '<div class="ln">' + pipsHTML(2) + '<span>3 × Zerstörer</span></div>' +
+      '<div class="ln">' + pipsHTML(1) + '<span>4 × Schnellboot</span></div></div></li>';
+    h += '<li><b>Abstand</b><span>Schiffe sind gerade und dürfen sich nicht berühren, auch nicht über Eck.</span></li>';
+    h += '<li><b>Treffer</b><span>Wer trifft, schießt nochmal. Wird ein Schiff versenkt, werden die Felder drumherum automatisch als leer markiert.</span></li>';
+    h += '<li><b>Sieg</b><span>Wer zuerst alle zehn Schiffe des Gegners versenkt, gewinnt.</span></li>';
+    h += '</ul></section></div>';
+    return h;
+  }
+
+  function viewPlace() {
+    var p = S.placing, P = S.players[p], left = remaining(P);
+    S.sel = nextSel(P);
+    var done = S.sel === 0;
+    var h = '<div class="status tight"><div><h2>' + name(p) + ': Flotte aufstellen</h2><div class="muted">Das andere Team schaut bitte weg.</div></div></div>';
+    h += '<div class="placearena" id="arena"><div class="bcol">' + boardHTML(P, "place", { showShips: true, cls: "target", flash: true, label: "Eigenes Feld" }) + '</div>';
+    h += '<section class="panel ppanel">';
+    h += '<div><h3>Schiff wählen</h3><div class="pool">';
+    TYPES.forEach(function (t) {
+      h += '<button data-a="sel" data-size="' + t[0] + '" class="' + (S.sel === t[0] ? "sel" : "") + '"' + (left[t[0]] ? "" : " disabled") + '><span class="row" style="gap:12px">' + pipsHTML(t[0]) + '<span>' + t[1] + '</span></span><span class="cnt">noch ' + left[t[0]] + '</span></button>';
+    });
+    h += '</div></div><div style="display:flex;flex-direction:column;gap:12px">';
+    h += '<div><h3>Ausrichtung</h3><div class="seg"><button data-a="h" class="' + (S.horiz ? "on" : "") + '">↔ Waagerecht</button><button data-a="v" class="' + (!S.horiz ? "on" : "") + '">↕ Senkrecht</button></div></div>';
+    h += '<p class="hint">Startfeld antippen, das Schiff wird nach rechts bzw. unten gelegt. Gesetztes Schiff antippen, um es zu entfernen.</p>';
+    h += '<div class="err">' + esc(S.err) + '</div>';
+    h += '<div class="row"><button class="btn ghost small" data-a="random">Zufällig aufstellen</button><button class="btn ghost small" data-a="clear">Alles leeren</button></div>';
+    h += '<button class="btn go" data-a="placed"' + (done ? "" : " disabled") + '>' + (done ? "Fertig – verdecken" : "Noch " + (FLEET.length - P.ships.length) + " Schiffe setzen") + '</button>';
+    h += '</div></section></div>' + footHTML();
+    return h;
+  }
+
+  function viewHandover() {
+    var n = S.next, h = '<div class="handover">';
+    h += '<p class="sub">iPad weitergeben an</p><p class="big">' + name(n.player) + '</p>';
+    if (n.kind === "place") h += '<p class="sub">Ihr stellt jetzt eure Flotte auf. Das andere Team schaut bitte weg.</p>';
+    else {
+      if (S.report) h += '<p class="report">' + S.report + '</p>';
+      h += '<p class="sub">Erst tippen, wenn nur ihr auf den Bildschirm schaut.</p>';
+    }
+    h += '<button class="btn" data-a="ready">Wir sind ' + name(n.player) + ' – los</button></div>';
+    return h;
+  }
+
+  function viewPlay() {
+    var me = S.players[S.turn], foe = S.players[1 - S.turn];
+    var h = '<div class="status tight"><div><h2>' + name(S.turn) + ' ist am Zug</h2><div class="msg' + (S.msgHit ? " hit" : "") + '">' + (S.msg ? esc(S.msg) : "Tippe ins gegnerische Feld, um zu schießen.") + '</div></div>';
+    if (S.pass) h += '<button class="btn" data-a="pass">iPad an ' + name(1 - S.turn) + ' weitergeben</button>';
+    h += '</div><div class="arena" id="arena">';
+    h += '<div class="unit"><div class="bcol"><div class="bhead tight"><span class="t">Gegner: ' + name(1 - S.turn) + '</span><span class="s">hier schießen</span></div>' +
+      boardHTML(foe, "enemy", { cls: "target" + (S.pass ? " locked" : ""), fresh: true, label: "Gegnerisches Feld" }) + '</div>' + fleetPanel(foe, "Gegnerflotte") + '</div>';
+    h += '<div class="unit"><div class="bcol"><div class="bhead tight"><span class="t">Deine Flotte</span><span class="s">rot umrandet: letzter Schuss</span></div>' +
+      boardHTML(me, "own", { showShips: true, showLast: true, cls: "locked", label: "Eigenes Feld" }) + '</div>' + fleetPanel(me, "Deine Schiffe") + '</div>';
+    return h + '</div>' + footHTML();
+  }
+
+  function viewWin() {
+    var w = S.winner, l = 1 - w;
+    function stat(p) {
+      var P = S.players[p], q = P.fired ? Math.round(P.hits / P.fired * 100) : 0;
+      var lost = S.players[p].ships.filter(function (s) { return s.hits === s.size; }).length;
+      return '<div class="stat"><div class="n">' + name(p) + (p === w ? " 🏆" : "") + '</div><dl><dt>Schüsse</dt><dd>' + P.fired + '</dd><dt>Treffer</dt><dd>' + P.hits + '</dd><dt>Trefferquote</dt><dd>' + q + ' %</dd><dt>Eigene Schiffe verloren</dt><dd>' + lost + ' / 10</dd></dl></div>';
+    }
+    var h = '<section class="panel win"><p class="muted">Alle Schiffe versenkt</p><p class="big">' + name(w) + ' hat gewonnen!</p>';
+    h += '<div class="stats">' + stat(0) + stat(1) + '</div>';
+    h += '<div class="row" style="justify-content:center"><button class="btn go" data-a="again">Neues Spiel</button><button class="btn ghost" data-a="quit">Beenden</button></div></section>';
+    h += '<div class="boards">';
+    [0, 1].forEach(function (p) {
+      h += '<div class="bwrap"><div class="bhead"><span class="t">Flotte von ' + name(p) + '</span><span class="s">aufgedeckt</span></div>' + boardHTML(S.players[p], "x", { showShips: true, cls: "locked", label: "Feld " + S.names[p] }) + '</div>';
+    });
+    return h + '</div>';
+  }
+
+  function render() {
+    var body = S.screen === "start" ? viewStart() : S.screen === "place" ? viewPlace() : S.screen === "handover" ? viewHandover() : S.screen === "play" ? viewPlay() : viewWin();
+    app.innerHTML = (S.screen === "handover" ? "" : headerHTML()) + body;
+    freshCell = -1;
+    fit();
+  }
+  function fit() {
+    var root = document.documentElement, arena = document.getElementById("arena");
+    var fitScreen = S.screen === "play" || S.screen === "place";
+    root.classList.toggle("fit", fitScreen);
+    if (!fitScreen || !arena) return;
+    arena.classList.remove("stack", "side", "narrow");
+    var W = arena.clientWidth, H = arena.clientHeight, G = 16, bs;
+    if (S.screen === "play") {
+      var P = 172, HEAD = 28;
+      if (W < 560) { arena.classList.add("narrow"); root.classList.remove("fit"); return; }
+      var stack = Math.min(W - P - G, (H - G) / 2 - HEAD);
+      var side = Math.min((W - G - 2 * (P + G)) / 2, H - HEAD);
+      if (stack >= side) { arena.classList.add("stack"); bs = stack; } else { arena.classList.add("side"); bs = side; }
+    } else {
+      if (W < 560) { arena.classList.add("narrow"); root.classList.remove("fit"); return; }
+      var sideP = Math.min(W - 320 - 20, H);
+      var stackP = Math.min(W, H - 330);
+      if (stackP > sideP) { arena.classList.add("stack"); bs = stackP; } else { bs = sideP; }
+    }
+    arena.style.setProperty("--bs", Math.max(220, Math.floor(bs)) + "px");
+  }
+  window.addEventListener("resize", function () { if (S) fit(); });
+  window.addEventListener("orientationchange", function () { setTimeout(function () { if (S) fit(); }, 250); });
+
+  // ---------- Vollbild ----------
+  function fsSupported() { var d = document.documentElement; return !!(d.requestFullscreen || d.webkitRequestFullscreen) && document.fullscreenEnabled !== false && document.webkitFullscreenEnabled !== false; }
+  function fsActive() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function toggleFs() {
+    try {
+      if (fsActive()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+      else {
+        var d = document.documentElement, r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d);
+        if (r && r.catch) r.catch(function () {});
+      }
+    } catch (e) {}
+  }
+  document.addEventListener("fullscreenchange", function () { render(); });
+  document.addEventListener("webkitfullscreenchange", function () { render(); });
+
+  // ---------- Steuerung ----------
+  function readNames() {
+    var a = document.getElementById("n0"), b = document.getElementById("n1"), e = document.getElementById("extra");
+    if (a) S.names[0] = a.value.trim() || "Team A";
+    if (b) S.names[1] = b.value.trim() || "Team B";
+  }
+  function handover(kind, player) { S.next = { kind: kind, player: player }; S.screen = "handover"; }
+
+  app.addEventListener("click", function (ev) {
+    var t = ev.target.closest("button");
+    if (!t) return;
+    var a = t.getAttribute("data-a");
+    if (t.hasAttribute("data-cell")) {
+      var idx = +t.getAttribute("data-cell");
+      var role = t.closest(".board").getAttribute("data-board");
+      if (role === "place") return placeAt(idx);
+      if (role === "enemy" && S.screen === "play") return fire(idx);
+      return;
+    }
+    switch (a) {
+      case "start": readNames(); var keep = S.names.slice(), ex = S.extra; S = fresh(keep, ex); S.screen = "place"; S.placing = 0; break;
+      case "resume": var sv = load(); if (sv) { S = sv; S.extra = true; } break;
+      case "sel": S.sel = +t.getAttribute("data-size"); S.err = ""; break;
+      case "h": S.horiz = true; break;
+      case "v": S.horiz = false; break;
+      case "random": randomFleet(S.players[S.placing]); S.err = ""; break;
+      case "clear": S.players[S.placing] = newPlayer(); S.sel = 4; S.err = ""; break;
+      case "placed":
+        S.err = "";
+        if (S.placing === 0) { S.placing = 1; S.sel = 4; handover("place", 1); }
+        else { S.turn = 0; S.msg = ""; S.report = ""; handover("play", 0); }
+        break;
+      case "ready":
+        S.screen = S.next.kind === "place" ? "place" : "play";
+        if (S.screen === "play") { S.pass = false; S.msg = ""; S.msgHit = false; }
+        break;
+      case "pass": S.turn = 1 - S.turn; handover("play", S.turn); break;
+      case "again": var n = S.names.slice(), x = S.extra; S = fresh(n, x); S.screen = "place"; break;
+      case "quit": var n2 = S.names.slice(), x2 = S.extra; S = fresh(n2, x2); S.ended = true; clearSave(); break;
+      case "fs": toggleFs(); return;
+      case "reset-ask": S.askReset = true; break;
+      case "reset-no": S.askReset = false; break;
+      case "reset-yes": var n3 = S.names.slice(), x3 = S.extra; S = fresh(n3, x3); clearSave(); break;
+      default: return;
+    }
+    save(); render();
+    if (a === "ready" || a === "pass" || a === "placed" || a === "start" || a === "again") window.scrollTo(0, 0);
+  });
+
+  function placeAt(idx) {
+    var P = S.players[S.placing];
+    S.err = "";
+    if (P.shipAt[idx] !== -1) {
+      var removed = P.ships.splice(P.shipAt[idx], 1)[0];
+      rebuild(P); S.sel = removed.size; save(); render(); return;
+    }
+    var size = nextSel(P);
+    if (!size) return;
+    var cells = cellsFor(Math.floor(idx / 10), idx % 10, size, S.horiz);
+    if (!cells) {
+      S.err = "Das " + size + "er-Schiff ragt hier über den Rand. Weiter " + (S.horiz ? "links" : "oben") + " ansetzen oder drehen.";
+      flashCells = [idx];
+    } else if (!canPlace(P, cells)) {
+      S.err = "Geht nicht: Schiffe dürfen sich nicht berühren, auch nicht über Eck.";
+      flashCells = cells;
+    } else {
+      addShip(P, cells); flashCells = [];
+      S.sel = nextSel(P);
+    }
+    save(); render();
+    if (flashCells.length) setTimeout(function () { flashCells = []; if (S.screen === "place") render(); }, 700);
+  }
+
+  // ---------- Speichern (nur dieses Gerät) ----------
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function load() { try { var s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  function clearSave() { try { localStorage.removeItem(KEY); } catch (e) {} }
+
+  function start(data) {
+    if (data && data.state) S = data.state;
+    else {
+      var sv = load();
+      S = fresh(sv && sv.names, sv ? sv.extra : true);
+    }
+    S.askReset = false;
+    S.extra = true;
+    render();
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot) {
+    try { window.claude.hot.snapshot(function () { return { state: S }; }); } catch (e) {}
+  }
+  if (window.claude && window.claude.hot && window.claude.hot.ready) window.claude.hot.ready(start);
+  else start((window.claude && window.claude.hot && window.claude.hot.data) || {});
+})();
+</script>
+
+</body></html>
