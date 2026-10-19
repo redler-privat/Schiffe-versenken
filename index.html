@@ -50,15 +50,15 @@
 }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
-body {
+body { margin: 0;
   background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 12px 24px;
+  padding-block: 10px 12px;
   -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-#app { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+#app { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
 header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .brand h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 4vw, 38px); margin: 0; color: var(--ink); letter-spacing: .01em; }
@@ -182,6 +182,42 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
 .stat dt { color: var(--muted); }
 .stat dd { margin: 0; text-align: right; font-weight: 600; }
 .confirm { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* Ein-Bildschirm-Layout fürs iPad */
+html.fit, html.fit body { height: 100%; overflow: hidden; }
+html.fit #app { height: 100%; }
+.arena { flex: 1; min-height: 0; display: flex; gap: 16px; justify-content: center; align-items: center; --bs: 360px; }
+.arena.stack { flex-direction: column; }
+.arena.narrow { flex-direction: column; align-items: stretch; }
+.unit { display: flex; gap: 16px; align-items: flex-start; }
+.arena.narrow .unit { flex-direction: column; align-items: stretch; }
+.bcol { width: var(--bs); display: flex; flex-direction: column; gap: 6px; flex: none; }
+.arena.narrow .bcol { width: 100%; }
+.bcol .board { width: 100%; padding: 6px; }
+.bhead.tight { height: 22px; align-items: center; flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.fleetpanel { width: 172px; flex: none; background: var(--sheet); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
+.arena.narrow .fleetpanel { width: 100%; margin-top: 0; }
+.fleetpanel .ttl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.fleetpanel .sum { font-weight: 700; font-size: 15px; }
+.fleetpanel .sum b { font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.frow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
+.frow .pips .pip { width: 13px; height: 13px; border-width: 1.5px; margin-left: -1.5px; }
+.frow .nm { grid-column: 1; font-size: 12px; color: var(--muted); }
+.frow .left { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.frow .left b { font-size: 22px; display: block; color: var(--fg); }
+.frow .left span { font-size: 11px; color: var(--muted); }
+.frow.done .pips .pip { border-color: var(--hit); background: var(--hit-soft); }
+.frow.done .left b { color: var(--hit); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; flex: none; }
+.status.tight { flex: none; }
+.status.tight h2 { font-size: clamp(20px, 2.6vw, 26px); }
+.status.tight .msg { font-size: clamp(20px, 2.6vw, 26px); }
+.placearena { flex: 1; min-height: 0; display: flex; gap: 20px; justify-content: center; align-items: flex-start; --bs: 360px; }
+.placearena.stack { flex-direction: column; align-items: center; }
+.placearena .ppanel { width: 320px; flex: none; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.placearena.stack .ppanel { width: var(--bs); max-width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+.placearena.stack .ppanel .span2 { grid-column: 1 / -1; }
+.placearena.narrow { flex-direction: column; align-items: stretch; }
+.placearena.narrow .bcol, .placearena.narrow .ppanel { width: 100%; }
 @media (prefers-reduced-motion: reduce) { .c.last, .c.fresh { animation: none; } }
 </style>
 </head>
@@ -190,7 +226,6 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
 <div id="app"><div style="max-width:560px;margin:40px auto;font-family:-apple-system,system-ui,sans-serif;line-height:1.5;font-size:18px">
 <h1 style="font-size:28px;margin:0 0 12px">Schiffe versenken</h1>
 <p><b>Das Spiel kann hier nicht starten.</b> Diese Ansicht zeigt die Datei nur als Vorschau und führt keine Programme (JavaScript) aus.</p>
-<p>Öffne die Datei stattdessen in einer App, die HTML-Dateien mit JavaScript ausführen kann, oder öffne das Spiel vor dem Flug im Browser und lass den Tab offen.</p>
 </div></div>
 
 <script>
@@ -347,13 +382,27 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
   }
   function headerHTML() {
     var right = "";
-    if (S.screen === "play" || S.screen === "place") {
-      right = S.askReset
-        ? '<span class="confirm"><span class="muted">Spiel wirklich abbrechen?</span><button class="btn small danger" data-a="reset-yes">Ja, abbrechen</button><button class="btn small ghost" data-a="reset-no">Weiterspielen</button></span>'
-        : '<button class="btn small ghost" data-a="reset-ask">Spiel abbrechen</button>';
-    }
     var fs = fsSupported() ? '<button class="btn small ghost" data-a="fs">' + (fsActive() ? "Vollbild beenden" : "⛶ Vollbild") + '</button>' : '';
     return '<header class="top"><div class="brand"><h1>Schiffe versenken</h1><span>nach russischen Regeln</span></div><div class="row">' + fs + right + '</div></header>';
+  }
+
+  function footHTML() {
+    var l = S.askReset
+      ? '<span class="confirm"><span class="muted">Spiel wirklich abbrechen? Alles geht verloren.</span><button class="btn small danger" data-a="reset-yes">Ja, abbrechen</button><button class="btn small ghost" data-a="reset-no">Weiterspielen</button></span>'
+      : '<button class="btn small ghost" data-a="reset-ask">Spiel abbrechen</button>';
+    return '<footer class="foot">' + l + '</footer>';
+  }
+  var TYPES = [[4, "Schlachtschiff"], [3, "Kreuzer"], [2, "Zerstörer"], [1, "Schnellboot"]];
+  function fleetPanel(P, title) {
+    var alive = P.ships.filter(function (s) { return s.hits < s.size; }).length;
+    var h = '<aside class="fleetpanel"><div class="ttl">' + title + '</div><div class="sum"><b>' + alive + '</b> von 10 übrig</div>';
+    TYPES.forEach(function (t) {
+      var all = P.ships.filter(function (s) { return s.size === t[0]; });
+      var sunk = all.filter(function (s) { return s.hits === s.size; }).length;
+      var left = all.length - sunk;
+      h += '<div class="frow' + (left === 0 ? " done" : "") + '">' + pipsHTML(t[0]) + '<div class="left"><b>' + left + '</b><span>' + (sunk ? sunk + " versenkt" : "von " + all.length) + '</span></div><div class="nm">' + t[1] + '</div></div>';
+    });
+    return h + '</aside>';
   }
 
   function viewStart() {
@@ -365,7 +414,6 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
     h += '<h2>Neues Spiel für zwei</h2><p class="lead muted">Ein iPad, zwei Teams. Jedes Team stellt verdeckt seine Flotte auf, danach wird das iPad nach jedem Zug weitergereicht.</p>';
     h += '<div class="field"><label for="n0">Team 1</label><input id="n0" maxlength="20" value="' + esc(S.names[0]) + '"></div>';
     h += '<div class="field"><label for="n1">Team 2</label><input id="n1" maxlength="20" value="' + esc(S.names[1]) + '"></div>';
-    h += '<label class="toggle"><input type="checkbox" id="extra"' + (S.extra ? " checked" : "") + '><span><b>Nach einem Treffer nochmal schießen</b><br><span class="muted">Klassische russische Regel. Ausschalten, wenn nach jedem Schuss gewechselt werden soll.</span></span></label>';
     h += '<div class="row"><button class="btn" data-a="start">Spiel starten</button>' + (resume ? '<button class="btn ghost" data-a="resume">Letztes Spiel fortsetzen</button>' : '') + '</div>';
     h += '</section>';
     h += '<section class="panel"><h3>Regeln</h3><ul class="rules">';
@@ -386,20 +434,20 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
     var p = S.placing, P = S.players[p], left = remaining(P);
     S.sel = nextSel(P);
     var done = S.sel === 0;
-    var h = '<div class="status"><div><h2>' + name(p) + ': Flotte aufstellen</h2><div class="muted">Das andere Team schaut bitte weg.</div></div></div>';
-    h += '<div class="place"><div class="bwrap">' + boardHTML(P, "place", { showShips: true, cls: "target", flash: true, label: "Eigenes Feld" }) + '</div>';
-    h += '<section class="panel" style="display:flex;flex-direction:column;gap:14px">';
+    var h = '<div class="status tight"><div><h2>' + name(p) + ': Flotte aufstellen</h2><div class="muted">Das andere Team schaut bitte weg.</div></div></div>';
+    h += '<div class="placearena" id="arena"><div class="bcol">' + boardHTML(P, "place", { showShips: true, cls: "target", flash: true, label: "Eigenes Feld" }) + '</div>';
+    h += '<section class="panel ppanel">';
     h += '<div><h3>Schiff wählen</h3><div class="pool">';
-    [[4, "Schlachtschiff"], [3, "Kreuzer"], [2, "Zerstörer"], [1, "Schnellboot"]].forEach(function (t) {
+    TYPES.forEach(function (t) {
       h += '<button data-a="sel" data-size="' + t[0] + '" class="' + (S.sel === t[0] ? "sel" : "") + '"' + (left[t[0]] ? "" : " disabled") + '><span class="row" style="gap:12px">' + pipsHTML(t[0]) + '<span>' + t[1] + '</span></span><span class="cnt">noch ' + left[t[0]] + '</span></button>';
     });
-    h += '</div></div>';
+    h += '</div></div><div style="display:flex;flex-direction:column;gap:12px">';
     h += '<div><h3>Ausrichtung</h3><div class="seg"><button data-a="h" class="' + (S.horiz ? "on" : "") + '">↔ Waagerecht</button><button data-a="v" class="' + (!S.horiz ? "on" : "") + '">↕ Senkrecht</button></div></div>';
-    h += '<p class="hint">Tippe auf das Startfeld, das Schiff wird nach rechts bzw. nach unten gelegt. Tippe ein gesetztes Schiff an, um es wieder zu entfernen.</p>';
+    h += '<p class="hint">Startfeld antippen, das Schiff wird nach rechts bzw. unten gelegt. Gesetztes Schiff antippen, um es zu entfernen.</p>';
     h += '<div class="err">' + esc(S.err) + '</div>';
     h += '<div class="row"><button class="btn ghost small" data-a="random">Zufällig aufstellen</button><button class="btn ghost small" data-a="clear">Alles leeren</button></div>';
     h += '<button class="btn go" data-a="placed"' + (done ? "" : " disabled") + '>' + (done ? "Fertig – verdecken" : "Noch " + (FLEET.length - P.ships.length) + " Schiffe setzen") + '</button>';
-    h += '</section></div>';
+    h += '</div></section></div>' + footHTML();
     return h;
   }
 
@@ -417,18 +465,14 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
 
   function viewPlay() {
     var me = S.players[S.turn], foe = S.players[1 - S.turn];
-    var h = '<div class="status"><div><h2>' + name(S.turn) + ' ist am Zug</h2><div class="msg' + (S.msgHit ? " hit" : "") + '">' + (S.msg ? esc(S.msg) : "Tippe ins gegnerische Feld, um zu schießen.") + '</div></div>';
+    var h = '<div class="status tight"><div><h2>' + name(S.turn) + ' ist am Zug</h2><div class="msg' + (S.msgHit ? " hit" : "") + '">' + (S.msg ? esc(S.msg) : "Tippe ins gegnerische Feld, um zu schießen.") + '</div></div>';
     if (S.pass) h += '<button class="btn" data-a="pass">iPad an ' + name(1 - S.turn) + ' weitergeben</button>';
-    h += '</div>';
-    h += '<div class="boards">';
-    h += '<div class="bwrap"><div class="bhead"><span class="t">Gegnerisches Gewässer</span><span class="s">' + name(1 - S.turn) + '</span></div>' +
-      boardHTML(foe, "enemy", { cls: "target" + (S.pass ? " locked" : ""), fresh: true, label: "Gegnerisches Feld" }) +
-      '<div class="bhead"><span class="s">Gegnerflotte</span>' + fleetLine(foe) + '</div></div>';
-    h += '<div class="bwrap"><div class="bhead"><span class="t">Deine Flotte</span><span class="s">Rot umrandet: letzter Schuss auf dich</span></div>' +
-      boardHTML(me, "own", { showShips: true, showLast: true, cls: "locked", label: "Eigenes Feld" }) +
-      '<div class="bhead"><span class="s">Eigene Schiffe</span>' + fleetLine(me) + '</div></div>';
-    h += '</div>';
-    return h;
+    h += '</div><div class="arena" id="arena">';
+    h += '<div class="unit"><div class="bcol"><div class="bhead tight"><span class="t">Gegner: ' + name(1 - S.turn) + '</span><span class="s">hier schießen</span></div>' +
+      boardHTML(foe, "enemy", { cls: "target" + (S.pass ? " locked" : ""), fresh: true, label: "Gegnerisches Feld" }) + '</div>' + fleetPanel(foe, "Gegnerflotte") + '</div>';
+    h += '<div class="unit"><div class="bcol"><div class="bhead tight"><span class="t">Deine Flotte</span><span class="s">rot umrandet: letzter Schuss</span></div>' +
+      boardHTML(me, "own", { showShips: true, showLast: true, cls: "locked", label: "Eigenes Feld" }) + '</div>' + fleetPanel(me, "Deine Schiffe") + '</div>';
+    return h + '</div>' + footHTML();
   }
 
   function viewWin() {
@@ -452,7 +496,31 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
     var body = S.screen === "start" ? viewStart() : S.screen === "place" ? viewPlace() : S.screen === "handover" ? viewHandover() : S.screen === "play" ? viewPlay() : viewWin();
     app.innerHTML = (S.screen === "handover" ? "" : headerHTML()) + body;
     freshCell = -1;
+    fit();
   }
+  function fit() {
+    var root = document.documentElement, arena = document.getElementById("arena");
+    var fitScreen = S.screen === "play" || S.screen === "place";
+    root.classList.toggle("fit", fitScreen);
+    if (!fitScreen || !arena) return;
+    arena.classList.remove("stack", "side", "narrow");
+    var W = arena.clientWidth, H = arena.clientHeight, G = 16, bs;
+    if (S.screen === "play") {
+      var P = 172, HEAD = 28;
+      if (W < 560) { arena.classList.add("narrow"); root.classList.remove("fit"); return; }
+      var stack = Math.min(W - P - G, (H - G) / 2 - HEAD);
+      var side = Math.min((W - G - 2 * (P + G)) / 2, H - HEAD);
+      if (stack >= side) { arena.classList.add("stack"); bs = stack; } else { arena.classList.add("side"); bs = side; }
+    } else {
+      if (W < 560) { arena.classList.add("narrow"); root.classList.remove("fit"); return; }
+      var sideP = Math.min(W - 320 - 20, H);
+      var stackP = Math.min(W, H - 330);
+      if (stackP > sideP) { arena.classList.add("stack"); bs = stackP; } else { bs = sideP; }
+    }
+    arena.style.setProperty("--bs", Math.max(220, Math.floor(bs)) + "px");
+  }
+  window.addEventListener("resize", function () { if (S) fit(); });
+  window.addEventListener("orientationchange", function () { setTimeout(function () { if (S) fit(); }, 250); });
 
   // ---------- Vollbild ----------
   function fsSupported() { var d = document.documentElement; return !!(d.requestFullscreen || d.webkitRequestFullscreen) && document.fullscreenEnabled !== false && document.webkitFullscreenEnabled !== false; }
@@ -474,7 +542,6 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
     var a = document.getElementById("n0"), b = document.getElementById("n1"), e = document.getElementById("extra");
     if (a) S.names[0] = a.value.trim() || "Team A";
     if (b) S.names[1] = b.value.trim() || "Team B";
-    if (e) S.extra = e.checked;
   }
   function handover(kind, player) { S.next = { kind: kind, player: player }; S.screen = "handover"; }
 
@@ -491,7 +558,7 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
     }
     switch (a) {
       case "start": readNames(); var keep = S.names.slice(), ex = S.extra; S = fresh(keep, ex); S.screen = "place"; S.placing = 0; break;
-      case "resume": var sv = load(); if (sv) S = sv; break;
+      case "resume": var sv = load(); if (sv) { S = sv; S.extra = true; } break;
       case "sel": S.sel = +t.getAttribute("data-size"); S.err = ""; break;
       case "h": S.horiz = true; break;
       case "v": S.horiz = false; break;
@@ -555,6 +622,7 @@ h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: v
       S = fresh(sv && sv.names, sv ? sv.extra : true);
     }
     S.askReset = false;
+    S.extra = true;
     render();
   }
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) {
